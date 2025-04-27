@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente Médico Dengue</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center my-4">Asistente Médico Dengue con Gemini AI</h1>
+        
+        <div class="status-box mb-4 p-3 rounded">
+            <h5><i class="fas fa-heartbeat me-2"></i>Estado del Sistema:</h5>
+            <div id="ai-status" class="d-flex align-items-center">
+                <div id="ai-status-icon" class="me-2">
+                    {% if ai_available %}
+                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i></span>
+                    {% else %}
+                        <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i></span>
+                    {% endif %}
+                </div>
+                <div>
+                    {% if ai_available %}
+                        <span><i class="fas fa-robot me-1"></i> Gemini AI conectado (API Key: {{ gemini_key }})</span>
+                    {% else %}
+                        <span><i class="fas fa-exclamation-triangle me-1"></i> Gemini AI no disponible - Usando respuestas predefinidas</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 shadow">
+            <div class="card-header bg-light">
+                <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab">
+                            <i class="fas fa-user-circle me-1"></i>Datos del Paciente
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="results-tab" data-bs-toggle="tab" data-bs-target="#results" type="button" role="tab">
+                            <i class="fas fa-file-medical me-1"></i>Diagnóstico
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="home" role="tabpanel">
+                        <form id="patient-form">
+                            <div class="mb-3">
+                                <label for="name" class="form-label"><i class="fas fa-user me-2"></i>Nombre del paciente:</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="age" class="form-label"><i class="fas fa-birthday-cake me-2"></i>Edad (0-120 años):</label>
+                                    <input type="number" class="form-control" id="age" name="age" min="0" max="120" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="sex" class="form-label"><i class="fas fa-venus-mars me-2"></i>Género:</label>
+                                    <select class="form-select" id="sex" name="sex" required>
+                                        <option value="">Seleccione</option>
+                                        <option value="Male">Masculino</option>
+                                        <option value="Female">Femenino</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="platelets" class="form-label"><i class="fas fa-microscope me-2"></i>Plaquetas (10,000-500,000):</label>
+                                    <input type="number" class="form-control" id="platelets" name="platelets" min="10000" max="500000" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="hemoglobin" class="form-label"><i class="fas fa-tint me-2"></i>Hemoglobina (5-20 g/dL):</label>
+                                    <input type="number" class="form-control" id="hemoglobin" name="hemoglobin" min="5" max="20" step="0.1" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="wbc" class="form-label"><i class="fas fa-blood me-2"></i>Recuento de glóbulos blancos (WBC):</label>
+                                    <input type="number" class="form-control" id="wbc" name="wbc" min="1000" max="30000" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="diff_count" class="form-label"><i class="fas fa-sliders-h me-2"></i>Conteo diferencial:</label>
+                                    <input type="number" class="form-control" id="diff_count" name="diff_count" min="0" max="1" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="rbc_panel" class="form-label"><i class="fas fa-vial me-2"></i>Panel de glóbulos rojos (RBC):</label>
+                                    <input type="number" class="form-control" id="rbc_panel" name="rbc_panel" min="0" max="1" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="pdw" class="form-label"><i class="fas fa-ruler-combined me-2"></i>Ancho de distribución de plaquetas (PDW):</label>
+                                    <input type="number" class="form-control" id="pdw" name="pdw" min="5" max="20" step="0.1" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="symptoms" class="form-label"><i class="fas fa-notes-medical me-2"></i>Síntomas adicionales:</label>
+                                <textarea class="form-control" id="symptoms" name="symptoms" rows="4" required>Fiebre alta, dolor de cabeza, dolor muscular</textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Analizar Datos
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="results" role="tabpanel">
+                        <div class="mb-4">
+                            <h4><i class="fas fa-diagnoses me-2"></i>Diagnóstico y Recomendaciones:</h4>
+                            <div id="diagnosis-result" class="p-3 bg-light rounded"></div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h4><i class="fas fa-comment-medical me-2"></i>Explicación Médica Detallada:</h4>
+                            <div id="medical-explanation" class="p-3 bg-light rounded"></div>
+                        </div>
+                        
+                        <div id="processing" class="text-center my-3 text-muted">
+                            <div class="spinner-border text-primary" role="status" style="display: none;">
+                                <span class="visually-hidden">Procesando...</span>
+                            </div>
+                        </div>
+                        
+                        <button id="download-pdf" class="btn btn-success" disabled>
+                            <i class="fas fa-file-pdf me-2"></i>Descargar Resultado como PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('patient-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Validar datos antes de enviar
+            const age = parseInt(document.getElementById('age').value);
+            const platelets = parseInt(document.getElementById('platelets').value);
+            const hemoglobin = parseFloat(document.getElementById('hemoglobin').value);
+            
+            if (age < 0 || age > 120) {
+                showError("La edad debe estar entre 0 y 120 años");
+                return;
+            }
+            
+            if (platelets < 10000 || platelets > 500000) {
+                showError("El recuento de plaquetas debe estar entre 10,000 y 500,000");
+                return;
+            }
+            
+            if (hemoglobin < 5 || hemoglobin > 20) {
+                showError("La hemoglobina debe estar entre 5 y 20 g/dL");
+                return;
+            }
+            
+            // Mostrar spinner de carga
+            const processingDiv = document.getElementById('processing');
+            processingDiv.innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Procesando...</span>
+                </div>
+                <p class="mt-2">Analizando datos del paciente...</p>
+            `;
+            
+            // Mostrar pestaña de resultados
+            const resultsTab = new bootstrap.Tab(document.getElementById('results-tab'));
+            resultsTab.show();
+            
+            // Deshabilitar botón de enviar
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+            
+            // Obtener datos del formulario
+            const formData = {
+                name: document.getElementById('name').value,
+                age: age,
+                sex: document.getElementById('sex').value,
+                platelets: platelets,
+                hemoglobin: hemoglobin,
+                wbc: parseInt(document.getElementById('wbc').value),
+                diff_count: parseInt(document.getElementById('diff_count').value),
+                rbc_panel: parseInt(document.getElementById('rbc_panel').value),
+                pdw: parseFloat(document.getElementById('pdw').value),
+                symptoms: document.getElementById('symptoms').value
+            };
+            
+            // Enviar datos al servidor
+            fetch('/api/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                processingDiv.innerHTML = "";
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-search me-2"></i>Analizar Datos';
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                // Mostrar resultados
+                const diagnosisResult = document.getElementById('diagnosis-result');
+                const medicalExplanation = document.getElementById('medical-explanation');
+                
+                // Estilo según el riesgo
+                const alertClass = data.prediction === 1 ? 'alert-danger' : 'alert-success';
+                const icon = data.prediction === 1 ? '🚨' : '✅';
+                const riskText = data.prediction === 1 ? 
+                    `ALTO RIESGO (${(data.probability * 100).toFixed(1)}% probabilidad)` : 
+                    `BAJO RIESGO (${((1 - data.probability) * 100).toFixed(1)}% probabilidad)`;
+                
+                diagnosisResult.innerHTML = `
+                    <div class="alert ${alertClass}">
+                        <h5>${icon} ${riskText}</h5>
+                        <p><strong><i class="fas fa-user me-2"></i>Datos del paciente:</strong><br>
+                        <strong>Nombre:</strong> ${data.patient_data.name}<br>
+                        <strong>Edad:</strong> ${data.patient_data.age} años<br>
+                        <strong>Género:</strong> ${data.patient_data.sex}<br>
+                        <strong>Plaquetas:</strong> ${data.patient_data.platelets.toLocaleString()}<br>
+                        <strong>Hemoglobina:</strong> ${data.patient_data.hemoglobin} g/dL<br>
+                        <strong>Síntomas:</strong> ${data.patient_data.symptoms}</p>
+                        <hr>
+                        <p class="mb-0"><small><i class="fas fa-clock me-1"></i>Tiempo de procesamiento: ${data.metadata.total_processing_time_seconds.toFixed(2)}s</small></p>
+                    </div>
+                `;
+                
+                // Mostrar explicación médica con formato
+                medicalExplanation.innerHTML = `
+                    <div class="alert alert-info">
+                        <h5><i class="fas ${data.metadata.ai_generated ? 'fa-robot' : 'fa-database'} me-2"></i>Explicación médica ${data.metadata.ai_generated ? 'generada por Gemini AI' : 'pregenerada'}</h5>
+                        <div class="ai-response">
+                            ${formatExplanation(data.explanation)}
+                        </div>
+                        <hr>
+                        <p class="mb-0"><small><i class="fas fa-clock me-1"></i>Tiempo de generación: ${data.metadata.explanation_time_seconds.toFixed(2)}s</small></p>
+                    </div>
+                `;
+                
+                // Habilitar botón de PDF
+                document.getElementById('download-pdf').disabled = false;
+            })
+            .catch(error => {
+                processingDiv.innerHTML = "";
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-search me-2"></i>Analizar Datos';
+                showError("Ocurrió un error al procesar la solicitud: " + error.message);
+            });
+        });
+        
+        function formatExplanation(text) {
+            // Convertir saltos de línea en <br>
+            let formatted = text.replace(/\n/g, '<br>');
+            
+            // Mejorar formato de listas
+            formatted = formatted.replace(/•/g, '<i class="fas fa-circle small me-1"></i>');
+            
+            // Resaltar secciones importantes
+            formatted = formatted.replace(/\[(.*?)\]/g, '<strong>$1</strong>');
+            
+            // Formatear referencias
+            formatted = formatted.replace(/(Referencias:)/g, '<h6 class="mt-3">$1</h6>');
+            
+            return formatted;
+        }
+        
+        function showError(message) {
+            const diagnosisResult = document.getElementById('diagnosis-result');
+            diagnosisResult.innerHTML = `
+                <div class="alert alert-warning">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Error</h5>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Actualizar estado de Gemini cada 5 segundos
+        function updateGeminiStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusIcon = document.getElementById('ai-status-icon');
+                    const statusText = document.getElementById('ai-status').querySelector('div:last-child');
+                    
+                    if (data.ai_available) {
+                        statusIcon.innerHTML = '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i></span>';
+                        statusText.innerHTML = '<i class="fas fa-robot me-1"></i> Gemini AI conectado (API Key: ' + data.gemini_key + ')';
+                    } else {
+                        statusIcon.innerHTML = '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i></span>';
+                        statusText.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Gemini AI no disponible - Usando respuestas predefinidas';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al verificar estado de Gemini:', error);
+                });
+        }
+        
+        // Verificar estado inicial
+        updateGeminiStatus();
+        
+        // Actualizar periódicamente
+        setInterval(updateGeminiStatus, 5000);
+        
+        // Descargar PDF (simulado)
+        document.getElementById('download-pdf').addEventListener('click', function() {
+            const btn = this;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generando PDF...';
+            btn.disabled = true;
+            
+            // Simular generación de PDF
+            setTimeout(() => {
+                alert("En una implementación real, esto generaría y descargaría un PDF con los resultados.");
+                btn.innerHTML = '<i class="fas fa-file-pdf me-2"></i>Descargar Resultado como PDF';
+                btn.disabled = false;
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
